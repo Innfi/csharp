@@ -12,28 +12,21 @@ namespace SampleTest
     {
         public static AmazonDynamoDBConfig DBConfig;
         public static AmazonDynamoDBClient Client;
-        public string TableName;
-        public string AttrUserId = "UserId";
+        public static string TestTableName = "InnfisTable";
+        public static string AttrUserId = "UserId";
         public string AttrUserName = "UserName";
         public string AttrUserScore = "UserScore";
 
         [ClassInitialize]
-        public static void ClassSetUp(TestContext context)
-        {
+        public static void ClassSetUp(TestContext context) {
             DBConfig = new AmazonDynamoDBConfig { ServiceURL = "http://127.0.0.1:8000" };
             Client = new AmazonDynamoDBClient(DBConfig);
+
+            CreateTable();
         }
 
-        [TestInitialize]
-        public void SetUp()
-        {
-            TableName = "DummyTable";
-        }
-
-        [TestMethod]
-        public void Test1CreateTable()
-        {
-            var request = new CreateTableRequest(TableName,
+        protected static void CreateTable() {
+            var request = new CreateTableRequest(TestTableName,
                 new List<KeySchemaElement> {
                     new KeySchemaElement(AttrUserId, KeyType.HASH)
                 },
@@ -43,13 +36,17 @@ namespace SampleTest
                 new ProvisionedThroughput(1, 1));
 
             var response = Client.CreateTable(request);
+        }
 
-            Assert.AreEqual(response.HttpStatusCode, HttpStatusCode.OK);
+        [ClassCleanup]
+        public static void ClassTearDown() {
+            var request = new DeleteTableRequest(TestTableName);
+
+            Client.DeleteTable(request);
         }
 
         [TestMethod]
-        public void Test2InsertNGetRecord()
-        {
+        public void Test1InsertNGetRecord() {
             var dummyUserId = 3;
 
             var request = ToDummyUpdateItemRequest(dummyUserId);
@@ -67,8 +64,7 @@ namespace SampleTest
             Assert.AreEqual(items[AttrUserScore].N, "100");
         }
 
-        protected UpdateItemRequest ToDummyUpdateItemRequest(int userId)
-        {
+        protected UpdateItemRequest ToDummyUpdateItemRequest(int userId) {
             var dict = new Dictionary<string, AttributeValueUpdate>();
             dict[AttrUserName] = new AttributeValueUpdate
             {
@@ -89,7 +85,7 @@ namespace SampleTest
 
             return new UpdateItemRequest
             {
-                TableName = this.TableName,
+                TableName = TestTableName,
                 Key = new Dictionary<string, AttributeValue> {
                     { AttrUserId, new AttributeValue { N = userId.ToString() } }
                 },
@@ -97,14 +93,13 @@ namespace SampleTest
             };
         }
 
-        protected QueryRequest ToDummyQueryRequest(int userId)
-        {
+        protected QueryRequest ToDummyQueryRequest(int userId) {
             var keyCondExpr = AttrUserId + " = :v_userId";
             var projExpr = AttrUserName + ", " + AttrUserScore;
 
             return new QueryRequest
             {
-                TableName = this.TableName,
+                TableName = TestTableName,
                 Select = "SPECIFIC_ATTRIBUTES",
                 ProjectionExpression = projExpr,
                 KeyConditionExpression = keyCondExpr,
