@@ -1,5 +1,7 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using System.Net;
+using System;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.Model;
@@ -107,6 +109,68 @@ namespace SampleTest
                     { ":v_userId", new AttributeValue { N = userId.ToString() } }
                 }
             };
+        }
+
+        [TestMethod]
+        public void Test2InsertNumberSet() {
+            var tableName = "GameHistory";
+            CreateGameHistoryTable(tableName);
+
+            var userIds = GenerateDummyUserIds();
+
+            var dict = new Dictionary<string, AttributeValueUpdate>();
+            dict["Userids"] = new AttributeValueUpdate {
+                Action = "PUT",
+                Value = new AttributeValue {
+                    NS = userIds.ToList()
+                }
+            };
+
+            var request = new UpdateItemRequest {
+                TableName = tableName,
+                Key = new Dictionary<string, AttributeValue>() {
+                    { "GameId", new AttributeValue { N = "12345" } }
+                },
+                AttributeUpdates = dict
+            };
+
+            var response = Client.UpdateItem(request);
+
+            Assert.AreEqual(response.HttpStatusCode, HttpStatusCode.OK);
+        }
+
+        protected void CreateGameHistoryTable(string tableName) {
+            var createTableRequest = new CreateTableRequest(tableName,
+                new List<KeySchemaElement> {
+                    new KeySchemaElement("GameId", KeyType.HASH)
+                },
+                new List<AttributeDefinition> {
+                    new AttributeDefinition("GameId", ScalarAttributeType.N)
+                },
+                new ProvisionedThroughput(1, 1));
+
+            Client.CreateTable(createTableRequest);
+        }
+
+        protected HashSet<string> GenerateDummyUserIds() {
+            var userIds = new HashSet<string>();
+            var random = new Random();
+
+            for (int i = 0; i < 20; i++) userIds.Add(random.Next(1, 200).ToString());
+
+            return userIds;
+        }
+
+        [TestMethod]
+        public void Test3UpdateNumberSet() {
+        }
+
+        [TestMethod]
+        public void Test4LocalSeconaryIndex() {
+        }
+
+        [TestMethod]
+        public void Test5GlobalSeconaryIndex() {
         }
     }
 }
