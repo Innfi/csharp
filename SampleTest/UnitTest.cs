@@ -139,7 +139,8 @@ namespace SampleTest
             Assert.AreEqual(response.HttpStatusCode, HttpStatusCode.OK);
         }
 
-        protected void CreateGameHistoryTable(string tableName) {
+        protected void CreateGameHistoryTable(string tableName)
+        {
             var createTableRequest = new CreateTableRequest(tableName,
                 new List<KeySchemaElement> {
                     new KeySchemaElement("GameId", KeyType.HASH)
@@ -152,7 +153,8 @@ namespace SampleTest
             Client.CreateTable(createTableRequest);
         }
 
-        protected HashSet<string> GenerateDummyUserIds() {
+        protected HashSet<string> GenerateDummyUserIds()
+        {
             var userIds = new HashSet<string>();
             var random = new Random();
 
@@ -162,7 +164,72 @@ namespace SampleTest
         }
 
         [TestMethod]
-        public void Test3UpdateNumberSet() {
+        public void Test3UpdateNumberSet()
+        {            
+            var tableName = "GameHistory";
+            DeleteTable(tableName);
+
+            CreateGameHistoryTable(tableName);
+            var userIds = GenerateDummyUserIds();
+            InsertUserIds(tableName, userIds);
+
+            var newUserIds = new List<string>();
+            newUserIds.Add("100");
+            newUserIds.Add("101");
+            newUserIds.Add("102");
+
+            var dict = new Dictionary<string, AttributeValueUpdate>();
+            dict["UserIds"] = new AttributeValueUpdate
+            {
+                Action = "ADD",
+                Value = new AttributeValue { NS = newUserIds }
+            };
+
+            var request = new UpdateItemRequest
+            {
+                TableName = tableName,
+                Key = new Dictionary<string, AttributeValue>() {
+                    { "GameId", new AttributeValue { N = "12345" } }
+                },
+                AttributeUpdates = dict
+            };
+
+            var response = Client.UpdateItem(request);
+            Assert.AreEqual(response.HttpStatusCode, HttpStatusCode.OK);
+
+            DeleteTable(tableName);
+        }
+
+        protected void InsertUserIds(string tableName, HashSet<string> userIds)
+        {
+            var dict = new Dictionary<string, AttributeValueUpdate>();
+            dict["Userids"] = new AttributeValueUpdate
+            {
+                Action = "PUT",
+                Value = new AttributeValue
+                {
+                    NS = userIds.ToList()
+                }
+            };
+
+            var request = new UpdateItemRequest
+            {
+                TableName = tableName,
+                Key = new Dictionary<string, AttributeValue>() {
+                    { "GameId", new AttributeValue { N = "12345" } }
+                },
+                AttributeUpdates = dict
+            };
+
+            var response = Client.UpdateItem(request);
+        }
+
+        protected void DeleteTable(string tableName)
+        {
+            Client.DeleteTable(new DeleteTableRequest
+            {
+                TableName = tableName
+            });
         }
 
         [TestMethod]
