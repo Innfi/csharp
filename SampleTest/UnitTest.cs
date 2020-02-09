@@ -24,6 +24,8 @@ namespace SampleTest
             DBConfig = new AmazonDynamoDBConfig { ServiceURL = "http://127.0.0.1:8000" };
             Client = new AmazonDynamoDBClient(DBConfig);
 
+            var listTableResponse = Client.ListTables();
+            if (listTableResponse.TableNames.Contains(TestTableName)) return;
             CreateTable();
         }
 
@@ -37,7 +39,7 @@ namespace SampleTest
                 },
                 new ProvisionedThroughput(1, 1));
 
-            var response = Client.CreateTable(request);
+            var response = Client.CreateTable(request);            
         }
 
         [ClassCleanup]
@@ -203,7 +205,7 @@ namespace SampleTest
         protected void InsertUserIds(string tableName, HashSet<string> userIds)
         {
             var dict = new Dictionary<string, AttributeValueUpdate>();
-            dict["Userids"] = new AttributeValueUpdate
+            dict["UserIds"] = new AttributeValueUpdate
             {
                 Action = "PUT",
                 Value = new AttributeValue
@@ -226,6 +228,9 @@ namespace SampleTest
 
         protected void DeleteTable(string tableName)
         {
+            var response = Client.ListTables();
+            if (!response.TableNames.Contains(tableName)) return;
+
             Client.DeleteTable(new DeleteTableRequest
             {
                 TableName = tableName
@@ -233,11 +238,40 @@ namespace SampleTest
         }
 
         [TestMethod]
-        public void Test4LocalSeconaryIndex() {
+        public void Test4QueryItems() {
+            var tableName = "GameHistory";
+            DeleteTable(tableName);
+            CreateGameHistoryTable(tableName);
+            var userIds = GenerateDummyUserIds();
+            InsertUserIds(tableName, userIds);
+
+            var queryRequest = new QueryRequest {
+                TableName = tableName,
+                Select = "SPECIFIC_ATTRIBUTES",
+                ProjectionExpression = "UserIds",
+                KeyConditionExpression = "GameId = :gameId",
+                ExpressionAttributeValues = new Dictionary<string, AttributeValue> {
+                    { ":gameId", new AttributeValue { N = "12345" } }
+                }
+            };
+
+            var response = Client.Query(queryRequest);
+            var resultUserIds = response.Items[0]["UserIds"].NS;
+
+            Assert.AreEqual(userIds.Count, resultUserIds.Count);
+            foreach (var resultUserId in resultUserIds) {
+                Assert.AreEqual(userIds.Contains(resultUserId), true);
+            }
+            
+            DeleteTable(tableName);
         }
 
         [TestMethod]
-        public void Test5GlobalSeconaryIndex() {
+        public void Test5LocalSeconaryIndex() {
+        }
+
+        [TestMethod]
+        public void Test6GlobalSeconaryIndex() {
         }
     }
 }
