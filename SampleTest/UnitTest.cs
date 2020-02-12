@@ -268,6 +268,40 @@ namespace SampleTest
 
         [TestMethod]
         public void Test5LocalSeconaryIndex() {
+            var tableName = "GameHistory";
+            var createTableRequest = new CreateTableRequest(tableName,
+                new List<KeySchemaElement> {
+                    new KeySchemaElement("GameId", KeyType.HASH),
+                    new KeySchemaElement("GameType", KeyType.RANGE)
+                },
+                new List<AttributeDefinition> {
+                    new AttributeDefinition("GameId", ScalarAttributeType.N),
+                    new AttributeDefinition("GameType", ScalarAttributeType.N),
+                    new AttributeDefinition("SeasonId", ScalarAttributeType.N)
+                },
+                new ProvisionedThroughput(1, 1));
+
+            var lsiGameSeason = new LocalSecondaryIndex {
+                IndexName = "GameSeasonIndex",
+                KeySchema = new List<KeySchemaElement> {
+                    new KeySchemaElement("GameId", KeyType.HASH),
+                    new KeySchemaElement("SeasonId", KeyType.RANGE)
+                },
+                Projection = new Projection {
+                    ProjectionType = "INCLUDE",
+                    NonKeyAttributes = new List<string> {
+                        "UserIds"
+                    }
+                }
+            };
+
+            createTableRequest.LocalSecondaryIndexes.Add(lsiGameSeason);
+
+            var response = Client.CreateTable(createTableRequest);
+
+            Assert.AreEqual(response.HttpStatusCode, HttpStatusCode.OK);
+
+            DeleteTable(tableName);
         }
 
         [TestMethod]
