@@ -269,6 +269,8 @@ namespace SampleTest
         [TestMethod]
         public void Test5LocalSeconaryIndex() {
             var tableName = "GameHistory";
+            DeleteTable(tableName);
+
             var createTableRequest = new CreateTableRequest(tableName,
                 new List<KeySchemaElement> {
                     new KeySchemaElement("GameId", KeyType.HASH),
@@ -301,7 +303,37 @@ namespace SampleTest
 
             Assert.AreEqual(response.HttpStatusCode, HttpStatusCode.OK);
 
+            PutDummyData(tableName);
+
+            var queryRequest = new QueryRequest(tableName);
+            queryRequest.IndexName = "GameSeasonIndex";
+            queryRequest.KeyConditionExpression = 
+                "GameId = :v_gameId and SeasonId = :v_seasonId";
+            queryRequest.ExpressionAttributeValues[":v_gameId"] =
+                new AttributeValue { N = "5" };
+            queryRequest.ExpressionAttributeValues[":v_seasonId"] =
+                new AttributeValue { N = "15" };
+            queryRequest.ProjectionExpression = "GameId, GameType, SeasonId";
+            var queryResponse = Client.Query(queryRequest);
+
+            Assert.AreEqual(queryResponse.HttpStatusCode, HttpStatusCode.OK);
+
             DeleteTable(tableName);
+        }
+
+        protected void PutDummyData(string tableName) {
+            var random = new Random();
+            for (int i = 0; i < 10; i++) {
+                string dummyGameType = random.Next(5).ToString();
+                string seasonid = (i + 10).ToString();
+
+                var itemsDict = new Dictionary<string, AttributeValue>();
+                itemsDict["GameId"] = new AttributeValue { N = i.ToString() };
+                itemsDict["GameType"] = new AttributeValue { N = dummyGameType };
+                itemsDict["SeasonId"] = new AttributeValue { N = seasonid };
+
+                Client.PutItem(new PutItemRequest(tableName, itemsDict));
+            }
         }
 
         [TestMethod]
