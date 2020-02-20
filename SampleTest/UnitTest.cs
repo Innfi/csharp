@@ -338,6 +338,55 @@ namespace SampleTest
 
         [TestMethod]
         public void Test6GlobalSeconaryIndex() {
+            var tableName = "GameHistory";
+            DeleteTable(tableName);
+
+            var gsiSeaonalKeyPlayer = new GlobalSecondaryIndex
+            {
+                IndexName = "SeasonalKeyPlayerIndex",
+                ProvisionedThroughput = new ProvisionedThroughput
+                {
+                    ReadCapacityUnits = 5,
+                    WriteCapacityUnits = 1
+                },
+                Projection = new Projection { ProjectionType = "ALL" },
+                KeySchema = new List<KeySchemaElement> {
+                    { new KeySchemaElement { AttributeName = "SeasonId", KeyType = "HASH"} },
+                    { new KeySchemaElement { AttributeName = "KeyPlayerId", KeyType = "RANGE" } }
+                }
+            };
+
+            var createTableRequest = new CreateTableRequest {
+                TableName = tableName,
+                KeySchema = new List<KeySchemaElement> {
+                    new KeySchemaElement("GameId", KeyType.HASH),
+                    new KeySchemaElement("GameType", KeyType.RANGE)
+                },
+                AttributeDefinitions = new List<AttributeDefinition> {
+                    new AttributeDefinition("GameId", ScalarAttributeType.N),
+                    new AttributeDefinition("GameType", ScalarAttributeType.N),
+                    new AttributeDefinition("SeasonId", ScalarAttributeType.N),
+                    new AttributeDefinition("KeyPlayerId", ScalarAttributeType.N)
+                },
+                ProvisionedThroughput = new ProvisionedThroughput(1, 1),
+                GlobalSecondaryIndexes = { gsiSeaonalKeyPlayer }
+            };
+
+            var response = Client.CreateTable(createTableRequest);
+            Assert.AreEqual(response.HttpStatusCode, HttpStatusCode.OK);
+
+            var queryRequest = new QueryRequest {
+                TableName = tableName,
+                IndexName = gsiSeaonalKeyPlayer.IndexName,
+                KeyConditionExpression = "SeasonId = :season_id and KeyPlayerId = :player_id",
+                ExpressionAttributeValues = new Dictionary<string, AttributeValue> {
+                    { ":season_id", new AttributeValue { N = "1" } },
+                    { ":player_id", new AttributeValue { N = "1234" } }
+                },
+                ScanIndexForward = true
+            };
+
+            var queryResponse = Client.Query(queryRequest);
         }
     }
 }
