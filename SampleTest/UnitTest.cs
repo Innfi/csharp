@@ -39,7 +39,7 @@ namespace SampleTest
                 },
                 new ProvisionedThroughput(1, 1));
 
-            var response = Client.CreateTable(request);            
+            var response = Client.CreateTable(request);
         }
 
         [ClassCleanup]
@@ -70,25 +70,16 @@ namespace SampleTest
 
         protected UpdateItemRequest ToDummyUpdateItemRequest(int userId) {
             var dict = new Dictionary<string, AttributeValueUpdate>();
-            dict[AttrUserName] = new AttributeValueUpdate
-            {
+            dict[AttrUserName] = new AttributeValueUpdate {
                 Action = "PUT",
-                Value = new AttributeValue
-                {
-                    S = "Ennfi"
-                }
+                Value = new AttributeValue { S = "Ennfi" }
             };
-            dict[AttrUserScore] = new AttributeValueUpdate
-            {
+            dict[AttrUserScore] = new AttributeValueUpdate {
                 Action = "PUT",
-                Value = new AttributeValue
-                {
-                    N = "100"
-                }
+                Value = new AttributeValue { N = "100" }
             };
 
-            return new UpdateItemRequest
-            {
+            return new UpdateItemRequest {
                 TableName = TestTableName,
                 Key = new Dictionary<string, AttributeValue> {
                     { AttrUserId, new AttributeValue { N = userId.ToString() } }
@@ -101,8 +92,7 @@ namespace SampleTest
             var keyCondExpr = AttrUserId + " = :v_userId";
             var projExpr = AttrUserName + ", " + AttrUserScore;
 
-            return new QueryRequest
-            {
+            return new QueryRequest {
                 TableName = TestTableName,
                 Select = "SPECIFIC_ATTRIBUTES",
                 ProjectionExpression = projExpr,
@@ -166,8 +156,7 @@ namespace SampleTest
         }
 
         [TestMethod]
-        public void Test3UpdateNumberSet()
-        {            
+        public void Test3UpdateNumberSet() {
             var tableName = "GameHistory";
             DeleteTable(tableName);
 
@@ -181,14 +170,12 @@ namespace SampleTest
             newUserIds.Add("102");
 
             var dict = new Dictionary<string, AttributeValueUpdate>();
-            dict["UserIds"] = new AttributeValueUpdate
-            {
+            dict["UserIds"] = new AttributeValueUpdate {
                 Action = "ADD",
                 Value = new AttributeValue { NS = newUserIds }
             };
 
-            var request = new UpdateItemRequest
-            {
+            var request = new UpdateItemRequest {
                 TableName = tableName,
                 Key = new Dictionary<string, AttributeValue>() {
                     { "GameId", new AttributeValue { N = "12345" } }
@@ -205,17 +192,12 @@ namespace SampleTest
         protected void InsertUserIds(string tableName, HashSet<string> userIds)
         {
             var dict = new Dictionary<string, AttributeValueUpdate>();
-            dict["UserIds"] = new AttributeValueUpdate
-            {
+            dict["UserIds"] = new AttributeValueUpdate {
                 Action = "PUT",
-                Value = new AttributeValue
-                {
-                    NS = userIds.ToList()
-                }
+                Value = new AttributeValue { NS = userIds.ToList() }
             };
 
-            var request = new UpdateItemRequest
-            {
+            var request = new UpdateItemRequest {
                 TableName = tableName,
                 Key = new Dictionary<string, AttributeValue>() {
                     { "GameId", new AttributeValue { N = "12345" } }
@@ -231,10 +213,7 @@ namespace SampleTest
             var response = Client.ListTables();
             if (!response.TableNames.Contains(tableName)) return;
 
-            Client.DeleteTable(new DeleteTableRequest
-            {
-                TableName = tableName
-            });
+            Client.DeleteTable(new DeleteTableRequest { TableName = tableName });
         }
 
         [TestMethod]
@@ -262,7 +241,7 @@ namespace SampleTest
             foreach (var resultUserId in resultUserIds) {
                 Assert.AreEqual(userIds.Contains(resultUserId), true);
             }
-            
+
             DeleteTable(tableName);
         }
 
@@ -303,11 +282,11 @@ namespace SampleTest
 
             Assert.AreEqual(response.HttpStatusCode, HttpStatusCode.OK);
 
-            PutDummyData(tableName);
+            PutDummyItems(tableName);
 
             var queryRequest = new QueryRequest(tableName);
             queryRequest.IndexName = "GameSeasonIndex";
-            queryRequest.KeyConditionExpression = 
+            queryRequest.KeyConditionExpression =
                 "GameId = :v_gameId and SeasonId = :v_seasonId";
             queryRequest.ExpressionAttributeValues[":v_gameId"] =
                 new AttributeValue { N = "5" };
@@ -321,7 +300,7 @@ namespace SampleTest
             DeleteTable(tableName);
         }
 
-        protected void PutDummyData(string tableName) {
+        protected void PutDummyItems(string tableName) {
             var random = new Random();
             for (int i = 0; i < 10; i++) {
                 string dummyGameType = random.Next(5).ToString();
@@ -341,11 +320,9 @@ namespace SampleTest
             var tableName = "GameHistory";
             DeleteTable(tableName);
 
-            var gsiSeaonalKeyPlayer = new GlobalSecondaryIndex
-            {
+            var gsiSeaonalKeyPlayer = new GlobalSecondaryIndex {
                 IndexName = "SeasonalKeyPlayerIndex",
-                ProvisionedThroughput = new ProvisionedThroughput
-                {
+                ProvisionedThroughput = new ProvisionedThroughput {
                     ReadCapacityUnits = 5,
                     WriteCapacityUnits = 1
                 },
@@ -387,6 +364,58 @@ namespace SampleTest
             };
 
             var queryResponse = Client.Query(queryRequest);
+        }
+
+        [TestMethod]
+        public void Test7ScanItems()
+        {
+            var tableName = "GameHistory";
+            DeleteTable(tableName);
+            CreateTableWithLSI(tableName);
+            PutDummyItems(tableName);
+
+            var scanRequest = new ScanRequest {
+                TableName = tableName,
+                Limit = 5,
+                FilterExpression = "SeasonId < :season_id",
+                ExpressionAttributeValues = new Dictionary<string, AttributeValue> {
+                    { ":season_id", new AttributeValue { N = "15" } }
+                }
+            };
+
+            var scanResponse = Client.Scan(scanRequest);
+            Assert.AreEqual(scanResponse.HttpStatusCode, HttpStatusCode.OK);
+        }
+
+        protected CreateTableResponse CreateTableWithLSI(string tableName) {
+
+            var lsiGameSeason = new LocalSecondaryIndex
+            {
+                IndexName = "GameSeasonIndex",
+                KeySchema = new List<KeySchemaElement> {
+                    new KeySchemaElement("GameId", KeyType.HASH),
+                    new KeySchemaElement("SeasonId", KeyType.RANGE)
+                },
+                Projection = new Projection { ProjectionType = "ALL" }
+            };
+
+            var createTableRequest = new CreateTableRequest
+            {
+                TableName = tableName,
+                KeySchema = new List<KeySchemaElement> {
+                    new KeySchemaElement("GameId", KeyType.HASH),
+                    new KeySchemaElement("GameType", KeyType.RANGE)
+                },
+                AttributeDefinitions = new List<AttributeDefinition> {
+                    new AttributeDefinition("GameId", ScalarAttributeType.N),
+                    new AttributeDefinition("GameType", ScalarAttributeType.N),
+                    new AttributeDefinition("SeasonId", ScalarAttributeType.N)
+                },
+                ProvisionedThroughput = new ProvisionedThroughput(1, 1)
+            };
+            createTableRequest.LocalSecondaryIndexes.Add(lsiGameSeason);
+
+            return Client.CreateTable(createTableRequest);
         }
     }
 }
