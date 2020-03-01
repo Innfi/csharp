@@ -5,11 +5,13 @@ using System;
 using System.Data.Entity;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Microsoft.Data.Sqlite;
+
 
 namespace SampleTest
 {
     public class EntityUserContext : DbContext {
-        public EntityUserContext() : base() { }
+        public EntityUserContext() : base("TestDBContext") { }
 
         public DbSet<EntityUser> EntityUsers { get; set; }
     }
@@ -29,6 +31,22 @@ namespace SampleTest
         }
 
         [TestMethod]
-        public void Test1AccessDatabaseWithModel() { }
+        public void Test1AccessDatabaseWithModel() {
+            var entityContext = new EntityUserContext();
+            entityContext.Database.Create();
+
+            var db = entityContext.Database;
+            var dbExists = db.Exists();
+
+            entityContext.EntityUsers.Add(new EntityUser {
+                UserId = 1234,
+                Nickname = "innfi",
+                Rank = 5,
+            });
+
+            var result = entityContext.SaveChanges();
+
+            Assert.AreEqual(result, 0);
+        }
     }
 }
