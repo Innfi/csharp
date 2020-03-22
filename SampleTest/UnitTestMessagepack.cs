@@ -23,6 +23,21 @@ namespace SampleTest
         [Key(1)] public List<int> Friends;
     }
 
+    [MessagePackObject]
+    public class UserLoginhistory {
+        [Key(0)] public int HistoryId;
+        [Key(1)] public List<ElementClass> UserDatas;
+        [Key(2)] public DateTime Created;
+    }
+
+    [MessagePackObject]
+    public class ElementClass
+    {
+        [Key(0)] public int UserId;
+        [Key(1)] public string GreetingsMessage;
+        [Key(2)] public DateTime LastLoggedIn;
+    }
+
     [TestClass]
     public class UnitTestMessagepack {
         [TestMethod]
@@ -60,7 +75,48 @@ namespace SampleTest
 
         [TestMethod]
         public void TestSerializeNestedClassInstance() {
+            var history = new UserLoginhistory {
+                HistoryId = 1324,
+                UserDatas = GenerateDummyElements(),
+                Created = DateTime.UtcNow
+            };
 
+            var bytes = MessagePackSerializer.Serialize(history);
+
+            var result = MessagePackSerializer.Deserialize<UserLoginhistory>(bytes);
+
+            Assert.AreEqual(SameObject(history, result), true);
+        }
+
+        protected List<ElementClass> GenerateDummyElements() {
+            var elements = new List<ElementClass>();
+            var random = new Random();
+            for (int i = 0; i < 10; i++) {
+                var hour = random.Next(12);
+                var second = random.Next(60);
+
+                elements.Add(new ElementClass {
+                    UserId = i + 1,
+                    GreetingsMessage = $"test{i}",
+                    LastLoggedIn = DateTime.UtcNow.AddDays(-7).AddHours(hour).AddSeconds(second)
+                });
+            }
+
+            return elements;
+        }
+
+        protected bool SameObject(UserLoginhistory lhs, UserLoginhistory rhs) {
+            if (lhs.HistoryId != rhs.HistoryId) return false;
+            if (lhs.UserDatas.Count != rhs.UserDatas.Count) return false;
+            for (int i = 0; i < lhs.UserDatas.Count; i++) {
+                if (lhs.UserDatas[i].UserId != rhs.UserDatas[i].UserId) return false;
+                if (lhs.UserDatas[i].GreetingsMessage != rhs.UserDatas[i].GreetingsMessage) return false;
+                if (lhs.UserDatas[i].LastLoggedIn != rhs.UserDatas[i].LastLoggedIn) return false;
+            }
+
+            if (lhs.Created != rhs.Created) return false;
+
+            return true;
         }
     }
 }
