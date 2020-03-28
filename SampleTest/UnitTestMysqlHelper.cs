@@ -13,37 +13,35 @@ namespace SampleTest
 
     [TestClass]
     public class UnitTestMysqlHelper {
-        [TestMethod]
-        public void Test0CallMysqlHelper() {
+        public MySqlConnection ConnectionData;
 
+        [TestInitialize]
+        public void SetUp() {
             var mysqlAddr = "127.0.0.1";
             var uid = "innfi";
             var password = "test_password";
             var database = "test_db";
-            var connectionData = new MySqlConnection {
+            ConnectionData = new MySqlConnection
+            {
                 ConnectionString = $"server={mysqlAddr}; uid={uid}; pwd={password}; " +
                 $"database={database}; Allow User Variables=True"
             };
+        }
 
-            var result = MySqlHelper.ExecuteReader(connectionData, "select count(*) from players; ");
+        [TestMethod]
+        public void Test0CallMysqlHelper() {
+
+            var result = MySqlHelper.ExecuteReader(ConnectionData, "select count(*) from players; ");
 
             Assert.AreEqual(result.HasRows, true);
         }
 
         [TestMethod]
         public void Test1Select() {
-            var mysqlAddr = "127.0.0.1";
-            var uid = "innfi";
-            var password = "test_password";
-            var database = "test_db";
-            var connectionData = new MySqlConnection {
-                ConnectionString = $"server={mysqlAddr}; uid={uid}; pwd={password}; " +
-                $"database={database}; Allow User Variables=True"
-            };
             var query = "select * from players where UserId=1;";
             var obj = new TestClass();
 
-            using (var reader = MySqlHelper.ExecuteReader(connectionData, query)) {
+            using (var reader = MySqlHelper.ExecuteReader(ConnectionData, query)) {
                 while (reader.Read()) {
                     if (!reader.HasRows) continue;
 
@@ -55,6 +53,33 @@ namespace SampleTest
 
             Assert.AreEqual(obj.UserId, 1);
             Assert.AreEqual(obj.Nickname, "innfi");
+        }
+
+        [TestMethod]
+        public void Test2Insert() {
+            var testData = DummyTestClass();
+
+            var query = "insert into players (UserId, Nickname, Created) " +
+                "values(@uid, @nickname, @created); ";
+            var mysqlParams = new MySqlParameter[] {
+                new MySqlParameter("uid", testData.UserId),
+                new MySqlParameter("nickname", testData.Nickname),
+                new MySqlParameter("created", testData.Created)
+            };
+
+            var result = MySqlHelper.ExecuteNonQuery(ConnectionData, query, mysqlParams);
+
+            Assert.AreEqual(result > 0, true);
+        }
+
+        protected TestClass DummyTestClass() {
+            var random = new Random();
+
+            return new TestClass {
+                UserId = random.Next(),
+                Nickname = $"name{random.Next()}",
+                Created = DateTime.UtcNow
+            };
         }
     }
 }
