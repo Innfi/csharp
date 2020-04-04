@@ -11,18 +11,17 @@ namespace SampleTest
 {
     [TestClass]
     public class UnitTestStackExchangeRedis {
-        [TestMethod]
-        public void Test0InitRedisConnector() {
-            var redis = ConnectionMultiplexer.Connect("127.0.0.1");
+        protected ConnectionMultiplexer redis;
+        protected IDatabase db;
 
-            Assert.AreEqual(redis.IsConnected, true);
+        [TestInitialize]
+        public void SetUp() {
+            redis = ConnectionMultiplexer.Connect("127.0.0.1");
+            db = redis.GetDatabase();
         }
 
         [TestMethod]
         public void Test1AccessScalarValue() {
-            var redis = ConnectionMultiplexer.Connect("127.0.0.1");
-            var db = redis.GetDatabase();
-
             var keyName = "hello";
             string stringValue = "world";
 
@@ -34,7 +33,15 @@ namespace SampleTest
 
         [TestMethod]
         public void Test2AccessHashSet() {
+            var keyName = "Setting";
+            var hashKeyLang = "Lang";
+            var hashValueLang = "En";
 
+            db.HashSet(keyName, hashKeyLang, hashValueLang);
+            var resultLang = db.HashGet(keyName, hashKeyLang);
+
+            Assert.AreEqual(resultLang.HasValue, true);
+            Assert.AreEqual((string)resultLang, hashValueLang);
         }
     }
 }
