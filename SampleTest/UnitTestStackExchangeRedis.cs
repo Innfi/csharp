@@ -43,5 +43,36 @@ namespace SampleTest
             Assert.AreEqual(resultLang.HasValue, true);
             Assert.AreEqual((string)resultLang, hashValueLang);
         }
+
+        [TestMethod]
+        public void Test3AccessSortedSet() {
+            var keyName = "OnlineUsers";
+            var userIds = GenerateRandomUserIds();
+
+            foreach (var userId in userIds) db.SortedSetAdd(keyName, userId, userId);
+
+            var result = db.SortedSetScan(keyName);
+            var lhs = 0;
+
+            foreach (var item in result) {
+                Assert.AreEqual(lhs, (int)item.Element);
+                lhs = (int)item.Element;
+            }
+        }
+
+        protected List<int> GenerateRandomUserIds() {
+            var random = new Random();
+
+            var userIds = new List<int>();
+
+            for (int i = 0; i < 20; i++) userIds.Add(random.Next(100));
+
+            return userIds;
+        }
+
+        [TestMethod]
+        public void Test4AccessSet() {
+            
+        }
     }
 }
