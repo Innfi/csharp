@@ -55,7 +55,7 @@ namespace SampleTest
             var lhs = 0;
 
             foreach (var item in result) {
-                Assert.AreEqual(lhs, (int)item.Element);
+                Assert.AreEqual(lhs <= (int)item.Element, true);
                 lhs = (int)item.Element;
             }
         }
@@ -72,7 +72,15 @@ namespace SampleTest
 
         [TestMethod]
         public void Test4AccessSet() {
-            
+            var keyName = "RecentUsers";
+            var userIds = GenerateRandomUserIds();
+
+            foreach (var userId in userIds) db.SetAdd(keyName, userId);
+
+            foreach(var userId in userIds)
+            {
+                Assert.AreEqual(db.SetContains(keyName, userId), true);
+            }
         }
     }
 }
