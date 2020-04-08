@@ -82,5 +82,16 @@ namespace SampleTest
                 Assert.AreEqual(db.SetContains(keyName, userId), true);
             }
         }
+
+        [TestMethod]
+        public void Test5Transaction() {
+            var keyName = "Setting";
+
+            var transaction = db.CreateTransaction();
+            db.HashSet(keyName, "Lang", "En");
+            db.HashSet(keyName, "CharSet", "UTF8mb4");
+
+            Assert.AreEqual(transaction.Execute(), true);
+        }
     }
 }
