@@ -1,8 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using StackExchange.Redis;
 
@@ -77,7 +74,7 @@ namespace SampleTest
 
             foreach (var userId in userIds) db.SetAdd(keyName, userId);
 
-            foreach(var userId in userIds)
+            foreach (var userId in userIds)
             {
                 Assert.AreEqual(db.SetContains(keyName, userId), true);
             }
@@ -92,6 +89,27 @@ namespace SampleTest
             db.HashSet(keyName, "CharSet", "UTF8mb4");
 
             Assert.AreEqual(transaction.Execute(), true);
+        }
+
+        [TestMethod]
+        public void Test6Lock() {
+            var lockKey = "redis-lock";
+            var lockToken = "test-token";
+
+            if (db.LockTake(lockKey, lockToken, TimeSpan.FromMinutes(1))) {
+                try {
+                    var keyUpdateTarget = "update-target";
+                    db.StringSet(keyUpdateTarget, "machine-1");
+                }
+                finally {
+                    db.LockRelease(lockKey, lockToken);
+                }
+            }
+        }
+
+        [TestMethod]
+        public void Test7List() {
+            
         }
     }
 }
