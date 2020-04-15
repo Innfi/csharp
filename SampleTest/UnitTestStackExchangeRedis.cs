@@ -108,8 +108,14 @@ namespace SampleTest
         }
 
         [TestMethod]
-        public void Test7List() {
-            
+        public void Test7ListPushAndRange() {
+            var keyName = "TestKey";
+
+            for (int i = 0; i < 10; i++) db.ListRightPush(keyName, i);
+
+            var result = db.ListRange(keyName);
+            Assert.AreEqual(result.Length, 10);
+            for (int i = 0; i < 10; i++) Assert.AreEqual(result[i], i);
         }
     }
 }
