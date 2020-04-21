@@ -211,6 +211,7 @@
     <Compile Include="UnitTestJson.cs" />
     <Compile Include="UnitTestMysqlHelper.cs" />
     <Compile Include="UnitTestStackExchangeRedis.cs" />
+    <Compile Include="UnitTestThreadPool.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
