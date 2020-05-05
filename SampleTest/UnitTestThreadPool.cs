@@ -69,7 +69,8 @@ namespace SampleTest
                 ThreadPool.QueueUserWorkItem(ThreadEntryPointCompound, containers[i]);
             }
 
-            WaitHandle.WaitAll(resetEvents);
+            //WaitHandle.WaitAll(resetEvents);
+            foreach (var resetEvent in resetEvents) resetEvent.WaitOne();
 
             for (int i = 0; i < threadCount; i++) Assert.AreEqual(data[i], 10);
         }
