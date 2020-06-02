@@ -1,17 +1,29 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Collections.Concurrent;
+using System.Threading;
 using System.Threading.Tasks;
+
+/*
+TODO
+------
+cancellation token? 
+
+
+*/
+
 
 
 namespace SampleCSharp
 {
     public class ThreadHandler {
         public static void Handle(object state) {
+            Console.WriteLine($"ThreadId={Thread.CurrentThread.ManagedThreadId}");
         }
     }
 
     public class QueueData {
-
+        public int Number;
     }
 
     public class SimpleThreadModel {
@@ -20,7 +32,7 @@ namespace SampleCSharp
         protected List<Task> tasks;
 
         public SimpleThreadModel() {
-            threadCount = 4;
+            threadCount = 2;
             InitTasks();
         }
 
@@ -31,8 +43,10 @@ namespace SampleCSharp
             }
         }
 
-        protected void StartTasks() {
+        public void RunTasks() {
             foreach (var task in tasks) task.Start();
+
+            foreach (var task in tasks) task.Wait();
         }
     }
 }
