@@ -7,6 +7,30 @@ namespace SampleCSharp
 {
     public class TestDataMain
     {
+        public static void TaskWithCancellationToken() {
+            var ctSource = new CancellationTokenSource();
+            var ct = ctSource.Token;
+
+            var task = new Task(() => taskHandler(ct), ct);
+
+            ctSource.CancelAfter(5000);
+
+            try {
+                task.Wait(ct);
+            } catch (OperationCanceledException) {
+                Console.WriteLine("operation canceled exception");
+            } finally {
+                ctSource.Dispose();
+            }
+        }
+
+        protected static void taskHandler(CancellationToken ct) {
+            while (true) {
+                if (ct.IsCancellationRequested) break;
+                Thread.Sleep(1000);
+            }
+        }
+
         public static void Tutorials() {
             Action<object> action = (object obj) => {
                 Console.WriteLine($"Task={Task.CurrentId}. obj={obj}. " +
@@ -42,7 +66,7 @@ namespace SampleCSharp
 
         public static void Main(string[] args)
         {
-            RunSimpleThreadModel();
+            TaskWithCancellationToken();
         }
     }
 }
